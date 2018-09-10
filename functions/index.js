@@ -4,7 +4,11 @@
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-admin.initializeApp();
+var serviceAccount = require('./service-account-credentials.json');
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://picture-notes-38f03.firebaseio.com"
+});
 const spawn = require('child-process-promise').spawn;
 const path = require('path');
 const os = require('os');
@@ -32,9 +36,8 @@ exports.generateThumbnail = functions.storage.object().onFinalize((object) => {
   // [START eventAttributes]
   console.log('Object>>>>>>>', object)
   const fileBucket = object.bucket; // The Storage bucket that contains the file.
-  const modifiedName = object.name.split("_");
-  const uidPart = modifiedName[2].split(".");
-  const uid = uidPart[0];
+  const modifiedName = object.name.split("_").pop().split('.');
+  const uid = modifiedName[0];
   const filePath = object.name; // File path in the bucket.
 
   const contentType = object.contentType; // File content type.
@@ -174,3 +177,4 @@ exports.uploadFile = functions.https.onRequest((req, res) => {
   });
 });
 // [upload file end]
+
