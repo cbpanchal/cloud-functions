@@ -38,8 +38,6 @@ exports.generateThumbnail = functions.storage.object().onFinalize((object) => {
   const fileBucket = object.bucket; // The Storage bucket that contains the file.
   const modifiedName = object.name.split("_").pop().split('.');
   const uid = modifiedName[0];
-  const modifiedData = object.name.split("_");
-  const oldTimeStamp = modifiedData[modifiedData.length-2];
   const filePath = object.name; // File path in the bucket.
 
   const contentType = object.contentType; // File content type.
@@ -110,32 +108,26 @@ exports.generateThumbnail = functions.storage.object().onFinalize((object) => {
     console.log('Got Signed URLs.');
     const thumbResult = results[0];
     const originalResult = results[1];
-    let thumbnailUrl = thumbResult[0];
-    let originalUrl = originalResult[0];
-
-    let id = new Date().getTime();
-    let imagesArray = {
-      [id] : [
-        [id],
-        originalUrl,
-        thumbnailUrl,
-      ]
-    }; 
-    console.log('imagesArray',imagesArray);
+    const thumbnailUrl = thumbResult[0];
+    const originalUrl = originalResult[0];
+    console.log('uid in generateThumbnail', uid);
     const image = {
-      id: oldTimeStamp,
+      id: new Date().getTime(),
       name: fileName,
-      images: imagesArray,
+      originalUrl: originalUrl,
+      thumbnailUrl: thumbnailUrl
     };
-    admin
+    
+    return admin
       .database()
-      .ref(`users`).child(uid).child("image").child(image.id).once("value").then(snapshot => {
-        if(snapshot.exists()) {
-          admin.database().ref(`users/${uid}/image/${image.id}/category/images`).update(imagesArray);
-        } else {
-          admin.database().ref(`users/${uid}/image/${image.id}/category`).set(image);
-        }
+      .ref(`users/${uid}/image/${image.id}`)
+      .set(image)
+      .then(res => {
+        console.log(res);
       })
+      .catch(error => {
+        console.log('Error in set database',error);
+      });
   });
   // [END thumbnailGeneration]
 });
